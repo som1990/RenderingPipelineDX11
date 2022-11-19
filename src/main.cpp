@@ -110,9 +110,8 @@ WORD g_Indicies[36] =
 	4, 0, 3, 4, 3, 7
 };
 
-// Forward declarations
-LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
 
+/*
 template< class ShaderClass >
 ShaderClass* LoadShader(const std::wstring& fileName, const std::string& entryPoint, const std::string& profile);
 
@@ -122,7 +121,7 @@ void UnloadContent();
 void Update(float deltaTime);
 void Render();
 void Cleanup();
-
+*/
 
 /*
 	Initialize the application window
@@ -133,7 +132,7 @@ int InitApplication(HINSTANCE hInstance, int cmdShow)
 	
 	return 0;
 }
-
+/*
 DXGI_RATIONAL QueryRefreshRate(UINT screenWidth, UINT screenHeight, BOOL vsync)
 {
 	DXGI_RATIONAL refreshRate = { 0, 1 };
@@ -229,6 +228,7 @@ DXGI_RATIONAL QueryRefreshRate(UINT screenWidth, UINT screenHeight, BOOL vsync)
 
 	return refreshRate;
 }
+*/
 
 /*
 	Initialize the DirectX device and swap chain
@@ -242,7 +242,7 @@ DXGI_RATIONAL QueryRefreshRate(UINT screenWidth, UINT screenHeight, BOOL vsync)
 	5) Create a depth-stencil state object that defines the behaviour of the output merger stage,
 	6) Create a rasterizer state object that defines the behaviour of the rasterizer stage.
 */
-
+/*
 int InitDirectX(HINSTANCE hInstance, BOOL vSync)
 {
 	// A window handle needs to already be initialized
@@ -396,83 +396,12 @@ int InitDirectX(HINSTANCE hInstance, BOOL vSync)
 
 
 }
-/*
-LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
-{
-	PAINTSTRUCT paintStruct;
-	HDC hDC;
-
-	switch (message)
-	{
-	case WM_PAINT:
-	{
-			hDC = BeginPaint(hwnd, &paintStruct);
-			EndPaint(hwnd, &paintStruct);
-			break;
-	}
-	case WM_DESTROY:
-	{
-			PostQuitMessage(25);
-			break;
-	}
-	case WM_KEYDOWN:
-	{
-		if (wParam == VK_ESCAPE)
-		{
-			PostQuitMessage(26);
-		}
-		break;
-	}
-	default:
-	{
-		return DefWindowProc(hwnd, message, wParam, lParam);
-	}
-
-	}// switch(message)
-
-	return 0;
-}
 */
 
-int Run()
-{
-	MSG msg = { 0 };
-
-	static DWORD previousTime = timeGetTime();
-	static float const targetFramerate = 30.0f;
-	static float const maxTimeStep = 1.0f / targetFramerate;
-
-	while (msg.message != WM_QUIT)
-	{
-		if (PeekMessage(&msg, 0, 0, 0, PM_REMOVE))
-		{
-			TranslateMessage(&msg);
-			DispatchMessage(&msg);
-		}
-		else
-		{
-			DWORD currentTime = timeGetTime();
-			float deltaTime = (currentTime - previousTime) / 1000.0f;
-			previousTime = currentTime;
-			// Cap the delta time to the max time step (useful if your 
-			// debugging and you don't want the deltaTime value to explode.
-			deltaTime = std::min<float>(deltaTime, maxTimeStep);
-
-			// Update (deltaTime);
-			// Render();
-
-		}
-	}
-
-	return int(msg.wParam);
-
-}
-
 // ENTRY POINT
-int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE prevInstance, LPWSTR cmdLine, int cmdShow)
+int CALLBACK WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE prevInstance, _In_ LPSTR cmdLine,_In_ int cmdShow)
 {
-	UNREFERENCED_PARAMETER(prevInstance);
-	UNREFERENCED_PARAMETER(cmdLine);
+
 	
 	// Check for DirectX Math Library Support
 	if (!DX11::XMVerifyCPUSupport())
@@ -480,30 +409,35 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE prevInstance, LPWSTR cmdLine,
 		MessageBox(nullptr, TEXT("Failed to verify DirectX Math library support."), TEXT("Error"), MB_OK);
 		return -1;
 	}
+	
 	try
 	{
+		
 		return App(g_WindowName, cmdShow).Init();
+
+
 	}
 	catch (const SGD3DException& err)
 	{
-		wchar_t* whatStr = new wchar_t[4096];
-		MultiByteToWideChar(CP_ACP, 0, err.what(), -1, whatStr, 4096);
-		wchar_t* typeStr = new wchar_t[4096];
-		MultiByteToWideChar(CP_ACP, 0, err.GetType(), -1, typeStr, 4096);
+		wchar_t* whatStr = new wchar_t[2048];
+		MultiByteToWideChar(CP_ACP, 0, err.what(), -1, whatStr, 2048);
+		wchar_t* typeStr = new wchar_t[2048];
+		MultiByteToWideChar(CP_ACP, 0, err.GetType(), -1, typeStr, 2048);
 		MessageBox(nullptr, whatStr, typeStr, MB_OK | MB_ICONEXCLAMATION);
-		
+		delete [] whatStr;
+		delete [] typeStr;
 	}
 	catch (const std::exception& err)
 	{
-		wchar_t* whatStr = new wchar_t[4096];
+		wchar_t* whatStr = new wchar_t[2048];
 		MultiByteToWideChar(CP_ACP, 0, err.what(), -1, whatStr, 4096);
 		MessageBox(nullptr, whatStr, TEXT("Standard Exception") , MB_OK | MB_ICONEXCLAMATION);
+		delete[] whatStr;
 	}
 	catch (...)
 	{
 		MessageBox(nullptr, TEXT("No details available"), TEXT("Unknown Exception"), MB_OK | MB_ICONEXCLAMATION);
 	}
-	//int returnCode = Run();
-	//return returnCode
+	
 	return -1;
 }

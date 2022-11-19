@@ -2,6 +2,8 @@
 #include <RenderingPipelineDX11PCH.h>
 #include "Keyboard.h"
 #include "Mouse.h"
+#include "Graphics.h"
+
 
 // Inspired by Chili https://wiki.planetchili.net/index.php/Hardware_3D_Series_(C%2B%2B_DirectX_Graphics)
 class Window
@@ -62,6 +64,7 @@ public:
 	void DisableCursor() noexcept;
 	bool CursorEnabled() const noexcept;
 	static std::optional<int> ProcessMessages() noexcept;
+	Graphics& Gfx();
 
 private: 
 	void ConfineCursor() noexcept;
@@ -80,6 +83,7 @@ private:
 	int width;
 	int height;
 	HWND hWnd;
+	std::unique_ptr<Graphics> pGfx;
 	std::vector<BYTE> rawBuffer;
 };
 

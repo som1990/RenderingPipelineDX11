@@ -29,6 +29,7 @@ int App::Init()
 		// debugging and you don't want the deltaTime value to explode.
 		deltaTime = std::min<float>(deltaTime, maxTimeStep);
 
+		DoFrame();
 		//GatherInput(deltaTime)
 		//RenderFrame(deltaTime)
 	}
@@ -36,6 +37,8 @@ int App::Init()
 }
 
 void App::DoFrame()
-{
-
+{	
+	const float col = sin(timeGetTime()/1000.f) / 2.0f + 0.5f;
+	wnd.Gfx().ClearBuffer(col, col, 1.0f);
+	wnd.Gfx().EndFrame();
 }

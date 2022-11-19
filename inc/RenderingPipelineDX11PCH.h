@@ -39,10 +39,15 @@
 #endif
 
 #define NOMINMAX
-#define STRICT
+//#define STRICT
 
 #include <windows.h>
+#include <tchar.h>
 #include <stringapiset.h>
+#pragma warning(push)
+#pragma warning(disable:4265)
+#include <wrl.h>
+#pragma warning(pop)
 
 // DirectX includes
 
@@ -50,6 +55,8 @@
 #include <d3dcompiler.h>
 #include <DirectXMath.h>
 #include <DirectXColors.h>
+#include <dxgidebug.h>
+#include "dxerr.h"
 
 // STL includes
 
@@ -59,11 +66,14 @@
 #include <sstream>
 #include <queue>
 #include <bitset>
+#include <memory>
+#include <vector>
 
 // Link library dependencies
 
 #pragma comment(lib, "d3d11.lib")
 #pragma comment(lib, "dxgi.lib")
+#pragma comment(lib, "dxguid.lib")
 #pragma comment(lib, "d3dcompiler.lib")
 #pragma comment(lib, "winmm.lib")
 
@@ -84,3 +94,4 @@ inline void SafeRelease(T& ptr)
 // Project Includes
 #include "SGD3DException.h"
 #include "WindowsThrowMacros.h"
+

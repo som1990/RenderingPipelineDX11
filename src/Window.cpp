@@ -1,23 +1,22 @@
 #include "RenderingPipelineDX11PCH.h"
 #include "Window.h"
-
+#define ENABLE_VSYNC true
+#define DISABLE_VSYNC false
 
 Window::WindowClass Window::WindowClass::wndClass;
-
-
 
 Window::WindowClass::WindowClass() noexcept
 	: hInst(GetModuleHandle(nullptr))
 {
 	WNDCLASSEX wndClass = { 0 };
-	wndClass.cbSize = sizeof(WNDCLASSEX);
-	wndClass.style = CS_HREDRAW | CS_VREDRAW; // or could try CS_OWNDC
+	wndClass.cbSize = sizeof(wndClass);
+	wndClass.style = CS_HREDRAW | CS_VREDRAW;
 	wndClass.lpfnWndProc = HandleMsgInit;
 	wndClass.cbClsExtra = 0;
 	wndClass.cbWndExtra = 0;
 	wndClass.hInstance = GetInstance();
 	wndClass.hCursor = LoadCursor(nullptr, IDC_ARROW);
-	wndClass.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
+	wndClass.hbrBackground = reinterpret_cast<HBRUSH>(COLOR_WINDOW + 1);
 	wndClass.lpszMenuName = nullptr;
 	wndClass.lpszClassName = GetName();
 
@@ -66,6 +65,8 @@ Window::Window(int width, int height, const LPCWSTR name, int cmdShow):
 
 	ShowWindow(hWnd, cmdShow);
 	UpdateWindow(hWnd);
+
+	pGfx = std::make_unique<Graphics>(hWnd, width, height, ENABLE_VSYNC);
 }
 
 Window::~Window()
@@ -122,11 +123,20 @@ std::optional<int> Window::ProcessMessages() noexcept
 	return {};
 }
 
+Graphics& Window::Gfx()
+{
+	if (!pGfx)
+	{
+		throw SGD3DWND_NOGFX_EXCEPT();
+	}
+	return *pGfx;
+}
+
 void Window::ConfineCursor() noexcept
 {
 	RECT rect;
 	GetClientRect(hWnd, &rect);
-	MapWindowPoints(hWnd, nullptr, (POINT*)(&rect), 2);
+	MapWindowPoints(hWnd, nullptr, reinterpret_cast<POINT*>(&rect), 2);
 	ClipCursor(&rect);
 }
 
@@ -151,12 +161,12 @@ LRESULT Window::HandleMsgInit(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	if (msg == WM_NCCREATE)
 	{
 		// extract ptr to window class from creation data
-		const CREATESTRUCTW* const pCreate = (CREATESTRUCTW*)(lParam);
-		Window* const pWnd = (Window*)(pCreate->lpCreateParams);
+		const CREATESTRUCTW* const pCreate = reinterpret_cast<CREATESTRUCTW*>(lParam);
+		Window* const pWnd = reinterpret_cast<Window*>(pCreate->lpCreateParams);
 		// set WinAPI-managed user data to storeptr to window instance
-		SetWindowLongPtr(hWnd, GWLP_USERDATA, (LONG_PTR)(pWnd));
+		SetWindowLongPtr(hWnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(pWnd));
 		// set message proc to normal (non-setup) handler now that setup is finished
-		SetWindowLongPtr(hWnd, GWLP_WNDPROC, (LONG_PTR)(&Window::HandleMsgContinuous));
+		SetWindowLongPtr(hWnd, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(&Window::HandleMsgContinuous));
 		// forward message to window instance handler
 		return pWnd->HandleMsg(hWnd, msg, wParam, lParam);
 	}
@@ -166,7 +176,7 @@ LRESULT Window::HandleMsgInit(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 LRESULT Window::HandleMsgContinuous(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
 	// retrieve ptr to window instance
-	Window* const pWnd = (Window*)(GetWindowLongPtr(hWnd, GWLP_USERDATA));
+	Window* const pWnd = reinterpret_cast<Window*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
 	// forward message to window instance handler
 	return pWnd->HandleMsg(hWnd, msg, wParam, lParam);
 }
@@ -185,13 +195,15 @@ LRESULT Window::HandleMsg(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) noe
 		PostQuitMessage(0);
 		return 0;
 	}
+	
 	case WM_PAINT:
 	{
 		hDC = BeginPaint(hWnd, &paintStruct);
+		//TextOut(hDC, 5, 5, greeting, _tcslen(greeting));
 		EndPaint(hWnd, &paintStruct);
 		break;
 	}
-
+	
 	case WM_KILLFOCUS:
 	{
 		keyboard.ClearState();
@@ -339,7 +351,7 @@ LRESULT Window::HandleMsg(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) noe
 		{
 			break;
 		}
-		UINT size;
+		UINT size = {};
 		// first get the size of the input data
 		if (
 			GetRawInputData(

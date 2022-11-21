@@ -19,12 +19,12 @@ public:
 		std::string GetErrorString() const noexcept;
 		std::string GetErrorDescription() const noexcept;
 		std::string GetErrorInfo() const noexcept;
-	
+
 	private:
 		HRESULT hr;
 		std::string info;
 	};
-	class InfoException :public Exception 
+	class InfoException :public Exception
 	{
 	public:
 		InfoException(int line, const char* file, std::vector<std::string> infoMsgs) noexcept;
@@ -46,7 +46,7 @@ public:
 public:
 	Graphics(HWND hWnd, int clientWidth, int clientHeight, BOOL vSync);
 	// Removing Copy Constructors as we don't want pass around graphics devices.
-	Graphics(const Graphics&) = delete; 
+	Graphics(const Graphics&) = delete;
 	Graphics& operator=(const Graphics&) = delete;
 	~Graphics() = default;
 	void EndFrame();
@@ -55,6 +55,8 @@ public:
 		const float color[] = { red, green, blue, 1.0f };
 		pContext->ClearRenderTargetView(pRenderTargetView.Get(), color);
 	}
+	void DrawTestTriangle();
+	
 private:
 #ifndef NDEBUG
 	DxgiInfoManager infoManager;
@@ -63,6 +65,8 @@ private:
 	Microsoft::WRL::ComPtr<IDXGISwapChain> pSwap;
 	Microsoft::WRL::ComPtr<ID3D11DeviceContext> pContext;
 	Microsoft::WRL::ComPtr<ID3D11RenderTargetView> pRenderTargetView;
+	
+	// Rest of the buffers
 	
 	int clientWidth;
 	int clientHeight;

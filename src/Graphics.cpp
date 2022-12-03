@@ -1,21 +1,9 @@
 #include <RenderingPipelineDX11PCH.h>
 #include "Graphics.h"
 
-namespace wrl = Microsoft::WRL;
-#define GFX_EXCEPT_NOINFO(hr) Graphics::HrException(__LINE__,__FILE__,hr)
-#define GFX_THROW_IF_NOINFO(hrcall) if(FAILED(hr=(hrcall))) throw Graphics::HrException(__LINE__,__FILE__,hr)
 
-#ifndef NDEBUG
-#define GFX_EXCEPT(hr) Graphics::HrException(__LINE__,__FILE__,(hr), infoManager.GetMessages())
-#define GFX_THROW_INFO(hrcall) infoManager.Set(); if( FAILED(hr=(hrcall))) throw GFX_EXCEPT(hr)
-#define GFX_DEVICE_REMOVED_EXCEPT(hr) Graphics::DeviceRemoveException(__LINE__,__FILE__, hr, infoManager.GetMessages())
-#define GFX_THROW_INFO_ONLY(call) infoManager.Set(); (call); {auto v = infoManager.GetMessages(); if(!v.empty()) {throw Graphics::InfoException(__LINE__,__FILE__,v);}}
-#else
-#define GFX_EXCEPT(hr) Graphics::HrException( __LINE__,__FILE__,(hr) )
-#define GFX_THROW_INFO(hrcall) GFX_THROW_IF_NOINFO(hrcall)
-#define GFX_DEVICE_REMOVED_EXCEPT(hr) Graphics::DeviceRemoveException( __LINE__,__FILE__,(hr) )
-#define GFX_THROW_INFO_ONLY(call) (call)
-#endif //NDEBUG
+namespace wrl = Microsoft::WRL;
+
 DXGI_RATIONAL QueryRefreshRate(UINT screenWidth, UINT screenHeight, BOOL vsync)
 {
 	DXGI_RATIONAL refreshRate = { 0, 1 };
@@ -180,21 +168,50 @@ Graphics::Graphics(HWND hWnd, int clientWidth, int clientHeight, BOOL vSync)
 	GFX_THROW_INFO(pSwap->GetBuffer(0, __uuidof(ID3D11Resource), &pBackBuffer));
 	GFX_THROW_INFO(pDevice->CreateRenderTargetView(pBackBuffer.Get(), nullptr, &pRenderTargetView));
 
-	// 3) Create a texture for the depth-stencil bufer
+	// 3) Create a texture for the depth-stencil buffer
 	D3D11_TEXTURE2D_DESC depthStencilBufferDesc = {};
 	depthStencilBufferDesc.ArraySize = 1;
-	depthStencilBufferDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
 	depthStencilBufferDesc.CPUAccessFlags = 0; // No CPU access required
-	depthStencilBufferDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+	depthStencilBufferDesc.Format = DXGI_FORMAT_D32_FLOAT;
 	depthStencilBufferDesc.Width = clientWidth;
 	depthStencilBufferDesc.Height = clientHeight;
 	depthStencilBufferDesc.MipLevels = 1;
 	depthStencilBufferDesc.SampleDesc.Count = 1;
 	depthStencilBufferDesc.SampleDesc.Quality = 0;
 	depthStencilBufferDesc.Usage = D3D11_USAGE_DEFAULT;
+	depthStencilBufferDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+	
+	wrl::ComPtr<ID3D11Texture2D> pDepthStencilBuffer;
+	GFX_THROW_INFO(pDevice->CreateTexture2D(&depthStencilBufferDesc, nullptr, &pDepthStencilBuffer));
+
+	// 4) Create a depth - stencil view from the depth - stencil buffer
+	D3D11_DEPTH_STENCIL_VIEW_DESC depthStencilViewDesc = {};
+	depthStencilViewDesc.Format = DXGI_FORMAT_D32_FLOAT;
+	depthStencilViewDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
+	depthStencilViewDesc.Texture2D.MipSlice = 0u;
+	GFX_THROW_INFO(pDevice->CreateDepthStencilView(pDepthStencilBuffer.Get(), &depthStencilViewDesc, &pDepthStencilView));
+
+	pContext->OMSetRenderTargets(1u, pRenderTargetView.GetAddressOf(), pDepthStencilView.Get());
+
+	// 5) Create a depth-stencil state object that defines the behaviour of the output merger stage,
+	D3D11_DEPTH_STENCIL_DESC depthStencilStateDesc = {};
+	depthStencilStateDesc.DepthEnable = TRUE;
+	depthStencilStateDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+	depthStencilStateDesc.DepthFunc = D3D11_COMPARISON_LESS;
+	depthStencilStateDesc.StencilEnable = FALSE;
+	wrl::ComPtr<ID3D11DepthStencilState> pDepthStencilState;
+	GFX_THROW_INFO(pDevice->CreateDepthStencilState(&depthStencilStateDesc, &pDepthStencilState));
+
+	// bind depth state
+	pContext->OMSetDepthStencilState(pDepthStencilState.Get(), 1u);
 
 }
-
+void Graphics::ClearBuffer(float red, float green, float blue) noexcept
+{
+	const float color[] = { red, green, blue, 1.0f };
+	pContext->ClearRenderTargetView(pRenderTargetView.Get(), color);
+	pContext->ClearDepthStencilView(pDepthStencilView.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0u);
+}
 
 void Graphics::EndFrame()
 {	
@@ -223,7 +240,7 @@ void Graphics::EndFrame()
 	}
 }
 
-void Graphics::DrawTestTriangle()
+void Graphics::DrawTestTriangle(const float angle, float mouseX, float mouseZ)
 {
 	{
 		namespace wrl = Microsoft::WRL;
@@ -231,23 +248,23 @@ void Graphics::DrawTestTriangle()
 		struct VertexPosColor
 		{
 			DX11::XMFLOAT3 Position;
-			DX11::XMFLOAT3 Color;
+			//DX11::XMFLOAT3 Color;
 		};
 		//Create Vertex buffer
-		/*
+
 		VertexPosColor g_Vertices[8] =  // CUBE
 		{
-			{ DX11::XMFLOAT3(-1.0f, -1.0f, -1.0f), DX11::XMFLOAT3(0.0f, 0.0f, 0.0f) }, // 0
-			{ DX11::XMFLOAT3(-1.0f,  1.0f, -1.0f), DX11::XMFLOAT3(0.0f, 1.0f, 0.0f) }, // 1
-			{ DX11::XMFLOAT3(1.0f,  1.0f, -1.0f), DX11::XMFLOAT3(1.0f, 1.0f, 0.0f) }, // 2
-			{ DX11::XMFLOAT3(1.0f, -1.0f, -1.0f), DX11::XMFLOAT3(1.0f, 0.0f, 0.0f) }, // 3
-			{ DX11::XMFLOAT3(-1.0f, -1.0f,  1.0f), DX11::XMFLOAT3(0.0f, 0.0f, 1.0f) }, // 4
-			{ DX11::XMFLOAT3(-1.0f,  1.0f,  1.0f), DX11::XMFLOAT3(0.0f, 1.0f, 1.0f) }, // 5
-			{ DX11::XMFLOAT3(1.0f,  1.0f,  1.0f), DX11::XMFLOAT3(1.0f, 1.0f, 1.0f) }, // 6
-			{ DX11::XMFLOAT3(1.0f, -1.0f,  1.0f), DX11::XMFLOAT3(1.0f, 0.0f, 1.0f) }  // 7
+			{ DX11::XMFLOAT3(-1.0f, -1.0f, -1.0f)},// DX11::XMFLOAT3(0.0f, 0.0f, 0.0f) }, // 0
+			{ DX11::XMFLOAT3(-1.0f,  1.0f, -1.0f)},// DX11::XMFLOAT3(0.0f, 1.0f, 0.0f) }, // 1
+			{ DX11::XMFLOAT3(1.0f,  1.0f, -1.0f)},// DX11::XMFLOAT3(1.0f, 1.0f, 0.0f) }, // 2
+			{ DX11::XMFLOAT3(1.0f, -1.0f, -1.0f)},// DX11::XMFLOAT3(1.0f, 0.0f, 0.0f) }, // 3
+			{ DX11::XMFLOAT3(-1.0f, -1.0f,  1.0f)},// DX11::XMFLOAT3(0.0f, 0.0f, 1.0f) }, // 4
+			{ DX11::XMFLOAT3(-1.0f,  1.0f,  1.0f)},// DX11::XMFLOAT3(0.0f, 1.0f, 1.0f) }, // 5
+			{ DX11::XMFLOAT3(1.0f,  1.0f,  1.0f)},// DX11::XMFLOAT3(1.0f, 1.0f, 1.0f) }, // 6
+			{ DX11::XMFLOAT3(1.0f, -1.0f,  1.0f)}, //DX11::XMFLOAT3(1.0f, 0.0f, 1.0f) }  // 7
 		};
-		*/
-		
+
+		/*
 		VertexPosColor g_Vertices[] = //TRIANGLE or Trapezoid
 		{
 			{ DX11::XMFLOAT3(0.0f, 0.5f, 0.0f), DX11::XMFLOAT3(0.0f, 1.0f, 0.0f) }, // 0
@@ -257,7 +274,7 @@ void Graphics::DrawTestTriangle()
 			{ DX11::XMFLOAT3(0.3f, 0.3f, 0.0f), DX11::XMFLOAT3(0.0f, 0.0f, 1.0f) },//4
 			{ DX11::XMFLOAT3(0.f, -0.8f, 0.0f), DX11::XMFLOAT3(1.0f, 0.0f, 0.0f) },//5
 		};
-		
+		*/
 		wrl::ComPtr<ID3D11Buffer> pVertexBuffer;
 		D3D11_BUFFER_DESC vBufferDesc = {};
 		vBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
@@ -268,17 +285,17 @@ void Graphics::DrawTestTriangle()
 		vBufferDesc.StructureByteStride = sizeof(VertexPosColor);
 		D3D11_SUBRESOURCE_DATA vSubresourceData = {};
 		vSubresourceData.pSysMem = g_Vertices;
-		
+
 		HRESULT hr;
 		GFX_THROW_INFO(pDevice->CreateBuffer(&vBufferDesc, &vSubresourceData, &pVertexBuffer));
-		
+
 		// Bind Vertex Buffer to pipeline
 		UINT const stride = sizeof(VertexPosColor);
 		UINT const offset = 0u;
 		pContext->IASetVertexBuffers(0u, 1u, pVertexBuffer.GetAddressOf(), &stride, &offset);
 
 		// Create Index Buffer
-		/*
+
 		WORD g_Indicies[36] = // CUBE
 		{
 			0, 1, 2, 0, 2, 3,
@@ -288,8 +305,8 @@ void Graphics::DrawTestTriangle()
 			1, 5, 6, 1, 6, 2,
 			4, 0, 3, 4, 3, 7
 		};
-		*/
-		
+
+		/*
 		unsigned short g_Indicies[] =
 		{
 			0,1,2,
@@ -297,7 +314,7 @@ void Graphics::DrawTestTriangle()
 			0,4,1,
 			2,1,5
 		};
-		
+		*/
 		wrl::ComPtr<ID3D11Buffer> pIndexBuffer;
 		D3D11_BUFFER_DESC indexBufferDesc = {};
 		indexBufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
@@ -312,6 +329,72 @@ void Graphics::DrawTestTriangle()
 
 		//Bind Index Buffer to pipeline
 		pContext->IASetIndexBuffer(pIndexBuffer.Get(), DXGI_FORMAT_R16_UINT, 0u);
+
+		struct ConstantBuffer
+		{
+			DX11::XMMATRIX transform; // Row major 
+
+		};
+		const ConstantBuffer cb =
+		{
+			{
+				// Right multiplied Left (gets calculated first)
+				// HLSL is a column major so need to transpose it.
+				DX11::XMMatrixTranspose(
+					DX11::XMMatrixRotationZ(angle) *
+					DX11::XMMatrixRotationX(angle) *
+					DX11::XMMatrixTranslation(mouseX,0.0,mouseZ + 4.f) *
+					DX11::XMMatrixPerspectiveFovLH(1.0f, 12.0f / 7.0f, 0.5, 10.0)
+				)
+			}
+		};
+
+		wrl::ComPtr<ID3D11Buffer> pConstantBuffer;
+		D3D11_BUFFER_DESC cBufferDesc = {};
+		cBufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+		cBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
+		cBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+		cBufferDesc.MiscFlags = 0u;
+		cBufferDesc.ByteWidth = sizeof(cb);
+		cBufferDesc.StructureByteStride = 0u;
+		D3D11_SUBRESOURCE_DATA cSubresourceData = {};
+		cSubresourceData.pSysMem = &cb;
+		GFX_THROW_INFO(pDevice->CreateBuffer(&cBufferDesc, &cSubresourceData, &pConstantBuffer));
+
+		// bind constant buffer to vertex shader
+		pContext->VSSetConstantBuffers(0u, 1u, pConstantBuffer.GetAddressOf());
+
+		struct ConstantBuffer2
+		{
+			DX11::XMFLOAT4 face_colors[6];
+		};
+		
+		const ConstantBuffer2 cb2 =
+		{
+			{
+				{1.0f, 0.0f, 1.0f, 1.0f},
+				{1.0f, 0.0f, 0.0f, 1.0f},
+				{0.0f, 1.0f, 0.0f, 1.0f},
+				{0.0f, 0.0f, 1.0f, 1.0f},
+				{1.0f, 1.0f, 0.0f, 1.0f},
+				{0.0f, 1.0f, 1.0f, 1.0f}
+			}
+
+		};
+		wrl::ComPtr<ID3D11Buffer> pConstantBuffer2;
+		D3D11_BUFFER_DESC cBufferDesc2 = {};
+		cBufferDesc2.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+		cBufferDesc2.Usage = D3D11_USAGE_DEFAULT;
+		cBufferDesc2.CPUAccessFlags = 0u;
+		cBufferDesc2.MiscFlags = 0u;
+		cBufferDesc2.ByteWidth = sizeof(cb2);
+		cBufferDesc2.StructureByteStride = 0u;
+		D3D11_SUBRESOURCE_DATA cSubresourceData2 = {};
+		cSubresourceData2.pSysMem = &cb2;
+		GFX_THROW_INFO(pDevice->CreateBuffer(&cBufferDesc2, &cSubresourceData2, &pConstantBuffer2));
+
+		//bind constant buffer to pixel shader
+		pContext->PSSetConstantBuffers(0u, 1u, pConstantBuffer2.GetAddressOf());
 
 		// create pixel shader
 		wrl::ComPtr<ID3D11PixelShader> pPixelShader;
@@ -338,7 +421,7 @@ void Graphics::DrawTestTriangle()
 		const D3D11_INPUT_ELEMENT_DESC inputElementDesc[] =
 		{
 			{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT,0,offsetof(VertexPosColor, Position), D3D11_INPUT_PER_VERTEX_DATA,0},
-			{"COLOR", 0, DXGI_FORMAT_R32G32B32_FLOAT,0,offsetof(VertexPosColor, Color), D3D11_INPUT_PER_VERTEX_DATA,0}
+			//{"COLOR", 0, DXGI_FORMAT_R32G32B32_FLOAT,0,offsetof(VertexPosColor, Color), D3D11_INPUT_PER_VERTEX_DATA,0}
 		};
 
 		GFX_THROW_INFO(pDevice->CreateInputLayout(
@@ -360,12 +443,12 @@ void Graphics::DrawTestTriangle()
 
 		// Set viewport
 		D3D11_VIEWPORT viewport_desc;
-		viewport_desc.Width = 800;
-		viewport_desc.Height = 600;
+		viewport_desc.Width = clientWidth;
+		viewport_desc.Height = clientHeight;
 		viewport_desc.MinDepth = 0;
 		viewport_desc.MaxDepth = 1;
-		viewport_desc.TopLeftX = 100;
-		viewport_desc.TopLeftY = 100;
+		viewport_desc.TopLeftX = 0;
+		viewport_desc.TopLeftY = 0;
 		pContext->RSSetViewports(1u, &viewport_desc);
 
 		GFX_THROW_INFO_ONLY(pContext->DrawIndexed((UINT)std::size(g_Indicies),0u, 0u));

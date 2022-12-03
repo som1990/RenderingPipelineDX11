@@ -40,6 +40,16 @@ void App::DoFrame()
 {	
 	const float col = sin(timeGetTime()/1000.f) / 2.0f + 0.5f;
 	wnd.Gfx().ClearBuffer(col, col, 1.0f);
-	wnd.Gfx().DrawTestTriangle();
+	wnd.Gfx().DrawTestTriangle(
+		timeGetTime() / 1000.f,
+		0.0f,
+		0.0f
+	);
+
+	wnd.Gfx().DrawTestTriangle(
+		timeGetTime() / 1000.f,
+		wnd.mouse.GetPosX() / 600.0f - 1.0f,
+		-wnd.mouse.GetPosY() / 350.0f + 1.0f
+	);
 	wnd.Gfx().EndFrame();
 }

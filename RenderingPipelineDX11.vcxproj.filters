@@ -16,6 +16,9 @@
     <Filter Include="Shader">
       <UniqueIdentifier>{ef769f85-f5d8-46c3-b5d9-0255892e3fd5}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\Macros">
+      <UniqueIdentifier>{2a281ea8-5365-4416-93af-acb9e62f20c0}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp">
@@ -59,9 +62,6 @@
     <ClInclude Include="inc\SGD3DException.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="inc\WindowsThrowMacros.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="inc\App.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -86,6 +86,12 @@
     <ClInclude Include="inc\DxgiInfoManager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="inc\WindowsThrowMacros.h">
+      <Filter>Header Files\Macros</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\GraphicsThrowMacros.h">
+      <Filter>Header Files\Macros</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="inc\DXGetErrorDescription.inl">
@@ -102,6 +108,8 @@
     <FxCompile Include="Shaders\VertexShader.hlsl">
       <Filter>Shader</Filter>
     </FxCompile>
-    <FxCompile Include="Shaders\PixelShader.hlsl" />
+    <FxCompile Include="Shaders\PixelShader.hlsl">
+      <Filter>Shader</Filter>
+    </FxCompile>
   </ItemGroup>
 </Project>

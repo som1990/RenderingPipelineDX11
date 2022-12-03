@@ -50,12 +50,9 @@ public:
 	Graphics& operator=(const Graphics&) = delete;
 	~Graphics() = default;
 	void EndFrame();
-	void ClearBuffer(float red, float green, float blue) noexcept
-	{
-		const float color[] = { red, green, blue, 1.0f };
-		pContext->ClearRenderTargetView(pRenderTargetView.Get(), color);
-	}
-	void DrawTestTriangle();
+	void ClearBuffer(float red, float green, float blue) noexcept;
+	
+	void DrawTestTriangle(const float angle, float mouseX, float mouseY );
 	
 private:
 #ifndef NDEBUG
@@ -65,6 +62,7 @@ private:
 	Microsoft::WRL::ComPtr<IDXGISwapChain> pSwap;
 	Microsoft::WRL::ComPtr<ID3D11DeviceContext> pContext;
 	Microsoft::WRL::ComPtr<ID3D11RenderTargetView> pRenderTargetView;
+	Microsoft::WRL::ComPtr<ID3D11DepthStencilView> pDepthStencilView;
 	
 	// Rest of the buffers
 	

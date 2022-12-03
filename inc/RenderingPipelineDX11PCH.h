@@ -93,5 +93,9 @@ inline void SafeRelease(T& ptr)
 
 // Project Includes
 #include "SGD3DException.h"
-#include "WindowsThrowMacros.h"
-#include "GraphicsThrowMacros.h"
+#include "Macros/WindowsThrowMacros.h"
+#include "Macros/GraphicsThrowMacros.h"
+
+//Inputs Classes
+#include "Keyboard.h"
+#include "Mouse.h"

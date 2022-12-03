@@ -86,10 +86,10 @@
     <ClInclude Include="inc\DxgiInfoManager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="inc\WindowsThrowMacros.h">
+    <ClInclude Include="inc\Macros\WindowsThrowMacros.h">
       <Filter>Header Files\Macros</Filter>
     </ClInclude>
-    <ClInclude Include="inc\GraphicsThrowMacros.h">
+    <ClInclude Include="inc\Macros\GraphicsThrowMacros.h">
       <Filter>Header Files\Macros</Filter>
     </ClInclude>
   </ItemGroup>

@@ -4,6 +4,7 @@
 
 class Graphics
 {
+	friend class Bindable;
 public:
 	class Exception : public SGD3DException
 	{
@@ -24,6 +25,7 @@ public:
 		HRESULT hr;
 		std::string info;
 	};
+
 	class InfoException :public Exception
 	{
 	public:
@@ -51,10 +53,14 @@ public:
 	~Graphics() = default;
 	void EndFrame();
 	void ClearBuffer(float red, float green, float blue) noexcept;
-	
-	void DrawTestTriangle(const float angle, float mouseX, float mouseY );
-	
+	void DrawIndexed(UINT count);
+	void SetProjection(const DirectX::FXMMATRIX &proj) noexcept;
+	DirectX::XMMATRIX GetProjection() const noexcept;
+
 private:
+
+	DirectX::XMMATRIX projection = DirectX::XMMatrixIdentity();
+
 #ifndef NDEBUG
 	DxgiInfoManager infoManager;
 #endif

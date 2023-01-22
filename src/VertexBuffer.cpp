@@ -1,0 +1,9 @@
+#include <RenderingPipelineDX11PCH.h>
+#include "VertexBuffer.h"
+
+
+void VertexBuffer::Bind(Graphics& gfx) noexcept
+{
+	UINT const offset = 0u;
+	GetContext(gfx)->IASetVertexBuffers(0u, 1u, pVertexBuffer.GetAddressOf(), &stride, &offset);
+}

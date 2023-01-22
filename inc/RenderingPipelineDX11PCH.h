@@ -4,7 +4,7 @@
 // target Windows 7 or later
 #define _WIN32_WINNT 0x0601
 #include <sdkddkver.h>
-
+/*
 #ifndef DISABLE_WINDOWS_MISCs
 #define NOGDICAPMASKS
 #define NOSYSMETRICS
@@ -40,7 +40,7 @@
 
 #define NOMINMAX
 //#define STRICT
-
+*/
 #include <windows.h>
 #include <tchar.h>
 #include <stringapiset.h>
@@ -60,14 +60,16 @@
 
 // STL includes
 
-#include <iostream>
-#include <string>
-#include <optional>
-#include <sstream>
-#include <queue>
 #include <bitset>
+#include <iostream>
 #include <memory>
+#include <optional>
+#include <random>
+#include <sstream>
+#include <string>
+#include <queue>
 #include <vector>
+
 
 // Link library dependencies
 
@@ -95,6 +97,7 @@ inline void SafeRelease(T& ptr)
 #include "SGD3DException.h"
 #include "Macros/WindowsThrowMacros.h"
 #include "Macros/GraphicsThrowMacros.h"
+#include "ChiliTimer.h"
 
 //Inputs Classes
 #include "Keyboard.h"
